@@ -7,30 +7,25 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 #conexao com o banco de dados 
 conn = psycopg2.connect(
-    dbname="sistema",
-    user="usuario",
-    password="senha",
-    host="localhost"
+    dbname="streaming",
+    user="nati",
+    password="nati",  # Agora a senha é 'nati'
+    host="localhost",
+    port="5432"
 )
-
 #extracao de dados
 #obtem matriz de avaliacoes (usuario x conteudo)
 
 query = """
-    SELECT usuario_id, conteudo_id, nota
-    FROM AVALIACOES
+    SELECT id_usuario, id_livro, nota
+    FROM avaliacoes
 """
-
 df = pd.read_sql(query, conn)
 
-#cria matriz usuario-item
-#linhas = usuarios
-#colunas = conteudos
-#valores = nota (ou 0 se nao avaliado)
-
+# Ajuste no pivot_table
 matriz = df.pivot_table(
-    index='usuario_id',
-    columns='conteudo_id',
+    index='id_usuario',
+    columns='id_livro',
     values='nota'
 ).fillna(0)
 
@@ -42,7 +37,7 @@ similaridade = cosine_similarity(matriz)
 #transforma em dataframe para facilitar uso 
 sim_df = pd.DataFrame(
     similaridade, 
-    index=matriz.indez,
+    index=matriz.index,
     columns=matriz.index
 )
 
@@ -94,7 +89,7 @@ for conteudo, score in recs:
     cur.execute("""
     INSERT INTO recomendacao_ml (usuario_id, conteudo_id, score)
     VALUES(%s, %s, %s)
-    """, (1, conteudo, float(score)))
+    """, (1, int(conteudo), float(score)))
 
 conn.commit()
 
